@@ -1,0 +1,27 @@
+#!/bin/bash
+ruby create_file_in_blog_folder.rb $1 $2
+title="$(while read -r line; do echo "$line"; done < ./blog_post_title)"
+rm ./blog_post_title
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && . "$HOME/.rvm/scripts/rvm"
+cd $2 && jekyll s &
+echo 'Please wait while server starts locally'
+sleep 5
+curl -s 127.0.0.1:4000
+if [ $? -eq 6 -o $? -eq 7 ]
+then
+  echo 'Try waiting somemore or maybe an error has occured.'
+else
+  google-chrome-stable 127.0.0.1:4000
+fi
+read -p "Please confirm whether everything is fine (y/n): " resp
+echo 'Stopping server'
+ps -ef | grep jekyll | grep -v grep | awk '{print $2}' | xargs kill
+if [[ "$resp" == "y" || "$resp" == "Y" ]]
+then
+  cd $2 && git add . && git commit -m "$title" && git push
+  echo "Pushed to repo. Blog published"
+else
+  echo "Removing file created in the repo"
+  cd $2 && git add . && git reset --hard
+  exit 1
+fi
